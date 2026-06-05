@@ -36,18 +36,12 @@ resource "yandex_iam_service_account_key" "sa-auth-key" {
   key_algorithm      = "RSA_4096"
 }
 
-# Create backet
+# Create bucket
 resource "yandex_storage_bucket" "es-bucket" {
   depends_on = [yandex_resourcemanager_folder_iam_member.upload_logs]
   access_key = yandex_iam_service_account_static_access_key.sa-writer-keys.access_key
   secret_key = yandex_iam_service_account_static_access_key.sa-writer-keys.secret_key
   bucket     = var.log_bucket_name
-
-  grant {
-    id          = yandex_iam_service_account.sa-writer.id
-    type        = "CanonicalUser"
-    permissions = ["READ", "WRITE"]
-  }
 
   # Remove backups after
   lifecycle_rule {
@@ -60,5 +54,17 @@ resource "yandex_storage_bucket" "es-bucket" {
 
   versioning {
     enabled = false
+  }
+}
+
+# Grant bucket permissions
+resource "yandex_storage_bucket_grant" "es-bucket-grant" {
+  bucket     = yandex_storage_bucket.es-bucket.bucket
+  access_key = yandex_iam_service_account_static_access_key.sa-writer-keys.access_key
+  secret_key = yandex_iam_service_account_static_access_key.sa-writer-keys.secret_key
+  grant {
+    id          = yandex_iam_service_account.sa-writer.id
+    type        = "CanonicalUser"
+    permissions = ["READ", "WRITE"]
   }
 }
